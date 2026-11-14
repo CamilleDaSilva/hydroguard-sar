@@ -1,0 +1,56 @@
+{
+  "bounds": [
+    [
+      43.19973636236931,
+      0.9996
+    ],
+    [
+      44.200286763545186,
+      2.200399999999868
+    ]
+  ],
+  "ha_reservoirs": 74.6,
+  "ha_irrigated": 1774.7,
+  "anomalies": [
+    {
+      "id": "HYD-01",
+      "lat": 44.17855,
+      "lon": 1.56193,
+      "score": 11.0,
+      "type": "Parcelle irrigu\u00e9e (36.3 ha)",
+      "detail": "Variation HH: +4.4 dB | Pluie Meteomatics: 0 mm"
+    },
+    {
+      "id": "HYD-02",
+      "lat": 43.73224,
+      "lon": 1.80361,
+      "score": 10.5,
+      "type": "Parcelle irrigu\u00e9e (33.4 ha)",
+      "detail": "Variation HH: +4.2 dB | Pluie Meteomatics: 0 mm"
+    },
+    {
+      "id": "HYD-03",
+      "lat": 43.96819,
+      "lon": 1.15763,
+      "score": 8.2,
+      "type": "Retenue remplie (9.4 ha)",
+      "detail": "Variation HH: -3.3 dB | Pluie Meteomatics: 0 mm"
+    },
+    {
+      "id": "HYD-04",
+      "lat": 43.83673,
+      "lon": 1.95477,
+      "score": 8.2,
+      "type": "Parcelle irrigu\u00e9e (31.2 ha)",
+      "detail": "Variation HH: +3.3 dB | Pluie Meteomatics: 0 mm"
+    },
+    {
+      "id": "HYD-05",
+      "lat": 43.74395,
+      "lon": 1.7532,
+      "score": 8.2,
+      "type": "Parcelle irrigu\u00e9e (22.2 ha)",
+      "detail": "Variation HH: +3.3 dB | Pluie Meteomatics: 0 mm"
+    }
+  ]
+}
