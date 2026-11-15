@@ -3,143 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HydroGuard SAR — NASA-ISRO NISAR & Sentinel-1</title>
+    <title>HydroGuard SAR — Surveillance des Ressources en Eau NISAR</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/style.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/globe.gl"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-    <!-- VUE 1 : GLOBE 3D ORBITAL -->
+    <!-- VUE 1 : GLOBE 3D ORBITAL & RECHERCHE MONDIALE -->
     <section id="globe-view" class="view-active">
         <div id="globe-container"></div>
 
-        <div class="orbital-card">
-            <div class="mission-tag">NASA-ISRO NISAR • SENTINEL-1 • MÉTÉO ARCHIVE</div>
+        <div class="orbital-header">
+            <div class="mission-tag">NASA-ISRO NISAR • BANDE L • CLOUD RUN LIVE</div>
             <h1>HydroGuard SAR</h1>
             <p class="subtitle">
-                Choisissez votre période d'observation (ex. Été 2026) puis recherchez une ville ou cliquez n'importe où sur le globe pour lancer l'analyse radar en temps réel.
+                Auditez les prélèvements d'eau agricoles, le remplissage des retenues et l'humidité des sols partout sur le globe par interférométrie radar Bande L.
             </p>
 
-            <div class="control-stack">
-                <select id="period-select" class="dark-input">
-                    <option value="summer2026">Été 2026 — Pic sécheresse (Juil. → Sept. 2026)</option>
-                    <option value="spring2026">Printemps 2026 — Mise en réserve (Avr. → Juin 2026)</option>
-                </select>
-
-                <div class="search-row">
-                    <input type="text" id="city-search" class="dark-input" placeholder="Ex: Toulouse, Fresno Californie, Almería..." />
-                    <button class="btn-primary" onclick="searchLocation()">Analyser</button>
+            <!-- Barre de recherche & Sélecteur de période -->
+            <div style="pointer-events: auto; margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; gap: 6px;">
+                    <input id="city-search-input" type="text" placeholder="Rechercher une ville ou coordonnées (ex: Toulouse, Séville, 43.6, 1.4)..."
+                        style="flex: 1; padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.4); background: rgba(10,15,28,0.92); color: #f8fafc; font-size: 13px; outline: none;" />
+                    <button onclick="searchLocation()"
+                        style="padding: 10px 16px; border-radius: 6px; border: none; background: #0284c7; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;">
+                        Analyser
+                    </button>
                 </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label for="period-select-home" style="font-size: 11px; color: #94a3b8; font-family: monospace;">PÉRIODE :</label>
+                    <select id="period-select-home" onchange="changePeriod(this.value)"
+                        style="flex: 1; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.25); background: rgba(10,15,28,0.92); color: #f8fafc; font-size: 12px; cursor: pointer;">
+                        <option value="summer_2026" selected>Été 2026 — Pic sécheresse (Juil. → Sept. 2026)</option>
+                        <option value="spring_2026">Printemps 2026 — Semis & Pré-étiage (Avr. → Juin 2026)</option>
+                        <option value="autumn_2026">Automne 2026 — Post-restrictions (Oct. → Nov. 2026)</option>
+                    </select>
+                </div>
+                <div id="search-status" style="font-size: 11.5px; color: #38bdf8; min-height: 16px;"></div>
+            </div>
+        </div>
+
+        <div class="sites-dock">
+            <div class="dock-label">SECTEURS DE SURVEILLANCE PRIORITAIRES (CLIQUEZ SUR LE GLOBE OU UN SECTEUR)</div>
+            <div class="site-cards">
+                <button class="site-card" onclick="selectSite('occitanie')">
+                    <span class="site-code">SEC-01 • ARCHIVE GCOV</span>
+                    <span class="site-title">Occitanie — Tarn & Garonne</span>
+                    <span class="site-meta">Retenues collinaires & parcelles irriguées</span>
+                </button>
+                <button class="site-card" onclick="selectSite('poitevin')">
+                    <span class="site-code">SEC-02 • CLOUD RUN</span>
+                    <span class="site-title">Marais Poitevin — Deux-Sèvres</span>
+                    <span class="site-meta">Réserves de substitution & nappes</span>
+                </button>
+                <button class="site-card" onclick="selectSite('donana')">
+                    <span class="site-code">SEC-03 • CLOUD RUN</span>
+                    <span class="site-title">Plaine de Doñana — Andalousie</span>
+                    <span class="site-meta">Forages & irrigation intensive</span>
+                </button>
             </div>
         </div>
     </section>
 
-    <!-- VUE 2 : EXPLORATEUR LOCAL -->
+    <!-- VUE 2 : EXPLORATEUR LOCAL & SCANNER RAYONS X -->
     <section id="local-view" class="view-hidden">
         <div id="map"></div>
+
+        <!-- Ligne verticale du scanner Optique / NISAR -->
         <div id="scanner-line">
-            <div id="scanner-handle">OPTIQUE | RADAR SAR</div>
+            <div id="scanner-handle">OPTIQUE <span class="handle-sep">|</span> NISAR</div>
         </div>
 
-        <nav class="top-bar">
+        <!-- Barre supérieure -->
+        <div class="top-bar">
             <button class="btn-back" onclick="returnToGlobe()">← Globe 3D</button>
-            <button class="btn-back" onclick="toggleInspector()" id="toggle-panel-text">Masquer panneau</button>
+            <button class="btn-toggle-panel" onclick="toggleInspector()">
+                <span id="toggle-panel-text">Masquer panneau</span>
+            </button>
             <div class="sector-indicator">
-                <span id="active-coords">43.60°N, 1.44°E</span>
-                <strong id="active-sector-name">Toulouse, Haute-Garonne • NISAR Bande L</strong>
+                <span id="active-sector-code">SEC-01</span>
+                <span class="divider">/</span>
+                <span id="active-sector-name">Occitanie — Tarn & Garonne</span>
             </div>
-        </nav>
+        </div>
 
-        <aside class="inspector-panel" id="inspector-panel">
-            <div class="panel-inner">
-                <div class="group-label">PÉRIODE D'OBSERVATION SATELLITE</div>
-                <select id="local-period-select" class="dark-input" style="margin-bottom: 14px;">
-                    <option value="summer2026">Été 2026 (Juil. → Sept.)</option>
-                    <option value="spring2026">Printemps 2026 (Avr. → Juin)</option>
-                </select>
+        <!-- Panneau latéral d'inspection -->
+        <aside id="inspector-panel" class="inspector-panel">
+            <div class="tab-bar">
+                <button id="tab-btn-radar" class="tab-btn active" onclick="switchTab('radar')">Retenues & Sols</button>
+                <button id="tab-btn-anomalies" class="tab-btn alert-tab" onclick="switchTab('anomalies')">Alertes OFB</button>
+                <button id="tab-btn-meteo" class="tab-btn" onclick="switchTab('meteo')">Preuve Météo</button>
+            </div>
 
-                <div class="tab-bar">
-                    <button class="tab-btn active" id="tab-btn-radar" onclick="switchTab('radar')">Retenues & Sols</button>
-                    <button class="tab-btn alert-tab" id="tab-btn-anomalies" onclick="switchTab('anomalies')">Alertes</button>
-                    <button class="tab-btn" id="tab-btn-meteo" onclick="switchTab('meteo')">Preuve Météo</button>
+            <!-- ONGLET 1 : RADAR & FILTRES -->
+            <div id="tab-radar" class="tab-content active">
+                <p id="sector-description" class="panel-desc"></p>
+
+                <!-- Sélecteur de période synchronisé -->
+                <div class="control-group">
+                    <div class="group-label">FENÊTRE TEMPORELLE NISAR</div>
+                    <select id="period-select" onchange="changePeriod(this.value)"
+                        style="width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.35); background: rgba(15,23,42,0.9); color: #f8fafc; font-size: 12px; cursor: pointer;">
+                        <option value="summer_2026" selected>Été 2026 — Pic sécheresse (Juil. → Sept. 2026)</option>
+                        <option value="spring_2026">Printemps 2026 — Semis & Pré-étiage (Avr. → Juin 2026)</option>
+                        <option value="autumn_2026">Automne 2026 — Post-restrictions (Oct. → Nov. 2026)</option>
+                    </select>
                 </div>
 
-                <!-- ONGLET 1 : RETENUES & SOLS -->
-                <div id="tab-radar" class="tab-content active">
-                    <p class="panel-desc">
-                        Croisement polarimétrique SAR (NISAR / Sentinel-1) et précipitations réelles : détection des variations d'humidité des sols et retenues d'eau sur la zone sélectionnée.
-                    </p>
-
-                    <div class="group-label">COUCHES DE DÉTECTION RADAR</div>
+                <div class="control-group">
+                    <div class="group-label">COUCHE VECTORIELLE DÉTECTÉE</div>
                     <div class="mode-grid">
-                        <button class="mode-btn active" id="btn-retenues" onclick="setMode('retenues')">
+                        <button id="btn-retenues" class="mode-btn active" onclick="setMode(currentFilter === 'retenues' ? 'all' : 'retenues')">
                             <span class="btn-title">Retenues d'eau</span>
-                            <span class="btn-sub">Bassins & Plans d'eau</span>
+                            <span class="btn-sub">Cyan • Bassins</span>
                         </button>
-                        <button class="mode-btn active" id="btn-pompages" onclick="setMode('pompages')">
-                            <span class="btn-title">Champs humidifiés</span>
-                            <span class="btn-sub">Variation sol (ΔdB)</span>
+                        <button id="btn-pompages" class="mode-btn active" onclick="setMode(currentFilter === 'pompages' ? 'all' : 'pompages')">
+                            <span class="btn-title">Sols irrigués</span>
+                            <span class="btn-sub">Orange • +dB HH</span>
                         </button>
                     </div>
+                </div>
 
-                    <div class="slider-box">
-                        <div class="slider-header">
-                            <span>100% Optique</span>
-                            <span id="pct-label">30%</span>
-                            <span>100% Radar</span>
-                        </div>
-                        <input type="range" id="xray-slider" min="0" max="100" value="30">
+                <div class="control-group">
+                    <div class="slider-header">
+                        <span>Opacité & Rideau Radar NISAR</span>
+                        <span id="pct-label">85%</span>
                     </div>
+                    <input id="xray-slider" type="range" min="0" max="100" value="85" />
+                </div>
 
-                    <div class="legend">
-                        <div class="group-label">SIGNATURE PHYSIQUE MICRO-ONDES</div>
-                        <div class="legend-item">
-                            <span class="dot" style="background: #06b6d4;"></span>
-                            <span><strong>Retenues d'eau (Cyan) :</strong> Réflexion spéculaire calme (chute &lt; -16.2 dB).</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="dot" style="background: #f97316;"></span>
-                            <span><strong>Zones humidifiées (Ambre) :</strong> Hausse de constante diélectrique (+2.1 à +8.0 dB).</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="dot" style="border: 1px dashed #38bdf8; background: transparent;"></span>
-                            <span><strong>Cadre cyan :</strong> Emprise analysée par l'API satellite.</span>
-                        </div>
+                <div class="control-group">
+                    <div class="group-label">ZONES PRIORITAIRES</div>
+                    <div id="hotspots-container" class="hotspots"></div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="dot" style="background:#06b6d4;"></span>
+                        <span><strong>Retenues remplies :</strong> baisse de rétrodiffusion spéculaire sur plan d'eau calme.</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot" style="background:#f97316;"></span>
+                        <span><strong>Parcelles irriguées :</strong> hausse de constante diélectrique en Bande L sans pluie.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ONGLET 2 : ALERTES PRIORITAIRES -->
+            <div id="tab-anomalies" class="tab-content">
+                <p id="anomaly-description" class="panel-desc"></p>
+                <div id="anomaly-list-container" class="anomaly-list"></div>
+            </div>
+
+            <!-- ONGLET 3 : KPI & PREUVE MÉTÉO -->
+            <div id="tab-meteo" class="tab-content">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div id="kpi-reservoirs" class="kpi-val cyan">-- ha</div>
+                        <div class="kpi-lbl">Retenues détectées</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div id="kpi-irrigated" class="kpi-val">-- ha</div>
+                        <div class="kpi-lbl">Parcelles irriguées</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div id="kpi-rain" class="kpi-val cyan">4 mm</div>
+                        <div class="kpi-lbl">Pluie cumulée période</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div id="kpi-alert-level" class="kpi-val amber">CRISE</div>
+                        <div class="kpi-lbl">Niveau arrêté sécheresse</div>
                     </div>
                 </div>
 
-                <!-- ONGLET 2 : ALERTES -->
-                <div id="tab-anomalies" class="tab-content">
-                    <p class="panel-desc">
-                        Points prioritaires où une hausse d'humidité ou un remplissage survient sans précipitation enregistrée.
-                    </p>
-                    <div class="anomaly-list" id="anomaly-list-container"></div>
+                <div class="group-label">PLUVIOMÉTRIE HEBDOMADAIRE (MM)</div>
+                <div class="chart-container">
+                    <canvas id="meteoChart"></canvas>
                 </div>
-
-                <!-- ONGLET 3 : PREUVE MÉTÉO -->
-                <div id="tab-meteo" class="tab-content">
-                    <div class="kpi-grid">
-                        <div class="kpi-card">
-                            <div class="kpi-val cyan" id="kpi-reservoirs">-- ha</div>
-                            <div class="kpi-lbl">Retenues détectées</div>
-                        </div>
-                        <div class="kpi-card">
-                            <div class="kpi-val amber" id="kpi-irrigated">-- ha</div>
-                            <div class="kpi-lbl">Parcelles humidifiées</div>
-                        </div>
-                    </div>
-                    <div class="group-label">PLUVIOMÉTRIE SUR LA PÉRIODE (MM)</div>
-                    <div class="chart-container">
-                        <canvas id="meteoChart"></canvas>
-                    </div>
-                </div>
+                <div class="meteo-source">Croisement Pluviométrie / Signal Bande L NISAR</div>
+                <div id="sector-data-status" class="data-notice" style="margin-top: 12px;"></div>
             </div>
         </aside>
     </section>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
